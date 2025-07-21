@@ -1,82 +1,132 @@
--- Blackhole GUI by @gde_patrick
+-- 📌 Автор: @gde_patrick
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HRP = Character:WaitForChild("HumanoidRootPart")
 
--- GUI Setup
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "BlackholeGui"
+local pulling = true
+local pullDistance = 15
+local rotateSpeed = 5
 
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 200, 0, 130)
-Frame.Position = UDim2.new(0, 20, 0, 200)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
+-- 🖼 GUI
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "BlackholeGui"
 
-local Title = Instance.new("TextLabel", Frame)
-Title.Text = "Blackhole by @gde_patrick"
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 220, 0, 130)
+frame.Position = UDim2.new(0, 20, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 
-local Toggle = Instance.new("TextButton", Frame)
-Toggle.Text = "🔴 ВЫКЛ"
-Toggle.Size = UDim2.new(1, -20, 0, 30)
-Toggle.Position = UDim2.new(0, 10, 0, 35)
-Toggle.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
-Toggle.TextColor3 = Color3.new(1, 1, 1)
-Toggle.Font = Enum.Font.Gotham
-Toggle.TextSize = 14
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Text = "🌀 Blackhole GUI by @gde_patrick"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+title.BorderSizePixel = 0
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 16
 
-local DistanceLabel = Instance.new("TextLabel", Frame)
-DistanceLabel.Text = "Радиус: 50"
-DistanceLabel.Size = UDim2.new(1, -20, 0, 20)
-DistanceLabel.Position = UDim2.new(0, 10, 0, 70)
-DistanceLabel.BackgroundTransparency = 1
-DistanceLabel.TextColor3 = Color3.new(1, 1, 1)
-DistanceLabel.Font = Enum.Font.Gotham
-DistanceLabel.TextSize = 14
+local toggle = Instance.new("TextButton", frame)
+toggle.Position = UDim2.new(0, 10, 0, 35)
+toggle.Size = UDim2.new(0, 200, 0, 30)
+toggle.Text = "✅ ВКЛ: Притяжение"
+toggle.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Font = Enum.Font.SourceSans
+toggle.TextSize = 18
 
-local Slider = Instance.new("TextButton", Frame)
-Slider.Size = UDim2.new(1, -20, 0, 25)
-Slider.Position = UDim2.new(0, 10, 0, 95)
-Slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Slider.Text = "Изменить радиус"
-Slider.TextColor3 = Color3.new(1, 1, 1)
-Slider.Font = Enum.Font.Gotham
-Slider.TextSize = 12
+local distanceLabel = Instance.new("TextLabel", frame)
+distanceLabel.Position = UDim2.new(0, 10, 0, 70)
+distanceLabel.Size = UDim2.new(0, 200, 0, 20)
+distanceLabel.Text = "Дистанция: " .. tostring(pullDistance)
+distanceLabel.TextColor3 = Color3.new(1, 1, 1)
+distanceLabel.BackgroundTransparency = 1
+distanceLabel.Font = Enum.Font.SourceSans
+distanceLabel.TextSize = 16
 
--- Blackhole Logic
-local enabled = false
-local radius = 50
+local increase = Instance.new("TextButton", frame)
+increase.Position = UDim2.new(0, 10, 0, 95)
+increase.Size = UDim2.new(0, 95, 0, 25)
+increase.Text = "⬆️ Увеличить"
+increase.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+increase.TextColor3 = Color3.new(1, 1, 1)
+increase.Font = Enum.Font.SourceSans
+increase.TextSize = 16
 
-Toggle.MouseButton1Click:Connect(function()
-    enabled = not enabled
-    Toggle.Text = enabled and "🟢 ВКЛ" or "🔴 ВЫКЛ"
-    Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 0, 0)
+local decrease = Instance.new("TextButton", frame)
+decrease.Position = UDim2.new(0, 115, 0, 95)
+decrease.Size = UDim2.new(0, 95, 0, 25)
+decrease.Text = "⬇️ Уменьшить"
+decrease.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+decrease.TextColor3 = Color3.new(1, 1, 1)
+decrease.Font = Enum.Font.SourceSans
+decrease.TextSize = 16
+
+local close = Instance.new("TextButton", frame)
+close.Size = UDim2.new(0, 25, 0, 25)
+close.Position = UDim2.new(1, -25, 0, 0)
+close.Text = "✖"
+close.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+close.TextColor3 = Color3.new(1, 1, 1)
+close.Font = Enum.Font.SourceSansBold
+close.TextSize = 18
+
+-- 🔘 GUI функции
+toggle.MouseButton1Click:Connect(function()
+    pulling = not pulling
+    toggle.Text = pulling and "✅ ВКЛ: Притяжение" or "⛔️ ВЫКЛ: Притяжение"
 end)
 
-Slider.MouseButton1Click:Connect(function()
-    radius = radius + 25
-    if radius > 200 then radius = 25 end
-    DistanceLabel.Text = "Радиус: " .. radius
+increase.MouseButton1Click:Connect(function()
+    pullDistance = pullDistance + 5
+    distanceLabel.Text = "Дистанция: " .. tostring(pullDistance)
 end)
 
--- Притягивание
-RunService.Heartbeat:Connect(function()
-    if not enabled then return end
+decrease.MouseButton1Click:Connect(function()
+    pullDistance = math.max(5, pullDistance - 5)
+    distanceLabel.Text = "Дистанция: " .. tostring(pullDistance)
+end)
 
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj.Anchored and (obj.Position - HRP.Position).Magnitude < radius then
-            local direction = (HRP.Position - obj.Position).Unit
-            obj.Velocity = direction * 50
+close.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+    pulling = false
+end)
+
+-- 🧲 Притяжение игроков с вращением
+local function attractPlayers()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = character.HumanoidRootPart
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHRP = player.Character.HumanoidRootPart
+            local direction = (hrp.Position - targetHRP.Position).Unit
+            local angle = tick() * rotateSpeed
+
+            local offset = Vector3.new(
+                math.cos(angle) * pullDistance,
+                0,
+                math.sin(angle) * pullDistance
+            )
+
+            targetHRP.CFrame = CFrame.new(hrp.Position + offset)
         end
     end
+end
+
+-- 🔁 Постоянный цикл
+RunService.Heartbeat:Connect(function()
+    if pulling then
+        pcall(attractPlayers)
+    end
+end)
+
+-- ♻️ Обработка возрождения
+LocalPlayer.CharacterAdded:Connect(function()
+    wait(1)
+    pulling = true
 end)

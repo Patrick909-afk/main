@@ -8,7 +8,7 @@ local LocalPlayer = Players.LocalPlayer
 -- 🔧 Настройки
 local enabled = false
 local targetGunName = "RayGun"
-local gunSpotName = "RayGunGiver" -- изменяй, если другое имя
+local gunSpotName = "RayGun" -- изменяй, если другое имя
 local killRange = 999
 local enlargeSize = Vector3.new(10, 10, 10)
 local killDelay = 5

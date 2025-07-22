@@ -1,144 +1,125 @@
--- 📌 Автор: @gde_patrick — Area 51 Auto RayGun + Kill All Script
+-- 📌 Автор: @gde_patrick
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- 🔧 Настройки
-local enabled = false
-local targetGunName = "RayGun"
-local gunSpotName = "RayGun" -- изменяй, если другое имя
-local killRange = 999
-local enlargeSize = Vector3.new(10, 10, 10)
-local killDelay = 5
+local rayGunName = "RayGun"
+local hitboxSize = Vector3.new(1000, 1000, 1000)
+local hitboxToggle = false
 
--- 📦 GUI
+-- 🧠 Враги (настрой вручную, если игра другая)
+local function getEnemies()
+    local enemies = {}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+            table.insert(enemies, obj)
+        end
+    end
+    return enemies
+end
+
+-- 📦 Взять RayGun
+local function pickupRayGun()
+    local rg = Workspace:FindFirstChild(rayGunName)
+    if rg and rg:IsA("Tool") then
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = rg.CFrame + Vector3.new(0, 3, 0)
+            fireproximityprompt(rg:FindFirstChildOfClass("ProximityPrompt"), 1)
+            wait(1)
+            local backpack = LocalPlayer:WaitForChild("Backpack")
+            local tool = backpack:FindFirstChild(rayGunName)
+            if tool then
+                tool.Parent = LocalPlayer.Character
+            end
+        end
+    end
+end
+
+-- 🌀 Хитбоксы вкл/выкл
+local function toggleHitboxes()
+    hitboxToggle = not hitboxToggle
+    for _, enemy in ipairs(getEnemies()) do
+        local root = enemy:FindFirstChild("HumanoidRootPart")
+        if root then
+            if hitboxToggle then
+                root.Size = hitboxSize
+                root.Transparency = 0.6
+                root.Material = Enum.Material.Neon
+                root.CanCollide = false
+            else
+                root.Size = Vector3.new(2, 2, 1)
+                root.Transparency = 0
+                root.Material = Enum.Material.Plastic
+                root.CanCollide = true
+            end
+        end
+    end
+end
+
+-- ♻️ Возврат хитбоксов после возрождения мобов
+RunService.Heartbeat:Connect(function()
+    if hitboxToggle then
+        for _, enemy in ipairs(getEnemies()) do
+            local root = enemy:FindFirstChild("HumanoidRootPart")
+            if root and root.Size.Magnitude < 100 then
+                root.Size = hitboxSize
+                root.Transparency = 0.6
+                root.Material = Enum.Material.Neon
+                root.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 💡 GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "Area51ScriptGui"
+gui.Name = "PatrickMenu"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 250, 0, 150)
-frame.Position = UDim2.new(0, 100, 0.3, 0)
+frame.Size = UDim2.new(0, 250, 0, 120)
+frame.Position = UDim2.new(0, 100, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "☢️ Area 51 KILL GUI"
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
+local uicorner = Instance.new("UICorner", frame)
+uicorner.CornerRadius = UDim.new(0, 10)
 
-local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(0.9, 0, 0, 40)
-toggle.Position = UDim2.new(0.05, 0, 0, 40)
-toggle.Text = "✅ ВКЛ: Автокилл"
-toggle.BackgroundColor3 = Color3.fromRGB(70, 130, 70)
-toggle.TextColor3 = Color3.new(1,1,1)
-toggle.Font = Enum.Font.SourceSans
-toggle.TextSize = 18
+local tpButton = Instance.new("TextButton", frame)
+tpButton.Size = UDim2.new(1, -20, 0, 40)
+tpButton.Position = UDim2.new(0, 10, 0, 10)
+tpButton.Text = "📦 Телепорт к RayGun"
+tpButton.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+tpButton.TextColor3 = Color3.new(1, 1, 1)
+tpButton.Font = Enum.Font.SourceSansBold
+tpButton.TextSize = 18
+Instance.new("UICorner", tpButton)
 
-local close = Instance.new("TextButton", frame)
-close.Size = UDim2.new(0, 30, 0, 30)
-close.Position = UDim2.new(1, -30, 0, 0)
-close.Text = "✖"
-close.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-close.TextColor3 = Color3.new(1, 1, 1)
-close.Font = Enum.Font.SourceSansBold
-close.TextSize = 16
+local hitboxButton = Instance.new("TextButton", frame)
+hitboxButton.Size = UDim2.new(1, -20, 0, 40)
+hitboxButton.Position = UDim2.new(0, 10, 0, 60)
+hitboxButton.Text = "🎯 Хитбоксы: OFF"
+hitboxButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+hitboxButton.TextColor3 = Color3.new(1, 1, 1)
+hitboxButton.Font = Enum.Font.SourceSansBold
+hitboxButton.TextSize = 18
+Instance.new("UICorner", hitboxButton)
 
-close.MouseButton1Click:Connect(function()
-	gui:Destroy()
-	enabled = false
+tpButton.MouseButton1Click:Connect(function()
+    pickupRayGun()
 end)
 
-toggle.MouseButton1Click:Connect(function()
-	enabled = not enabled
-	toggle.Text = enabled and "✅ ВКЛ: Автокилл" or "⛔️ ВЫКЛ: Автокилл"
-	toggle.BackgroundColor3 = enabled and Color3.fromRGB(70,130,70) or Color3.fromRGB(130,70,70)
+hitboxButton.MouseButton1Click:Connect(function()
+    toggleHitboxes()
+    hitboxButton.Text = hitboxToggle and "🎯 Хитбоксы: ON" or "🎯 Хитбоксы: OFF"
 end)
 
--- 🔫 Получение RayGun
-local function findRayGunSpot()
-	for _, obj in pairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and obj.Name:lower():find("ray") then
-			return obj
-		end
-	end
-end
-
-local function simulateEPress()
-	local key = Enum.KeyCode.E
-	UIS.InputBegan:Fire({KeyCode = key}, false)
-	wait(0.1)
-	UIS.InputEnded:Fire({KeyCode = key}, false)
-end
-
-local function equipRayGun()
-	for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
-		if tool:IsA("Tool") and tool.Name == targetGunName then
-			LocalPlayer.Character.Humanoid:EquipTool(tool)
-		end
-	end
-end
-
--- ☠️ Килл мобов
-local function enlargeEnemies()
-	for _, enemy in pairs(workspace:GetDescendants()) do
-		if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") then
-			local root = enemy.HumanoidRootPart
-			root.Size = enlargeSize
-			root.Transparency = 0.5
-			root.CanCollide = false
-			root.Material = Enum.Material.ForceField
-		end
-	end
-end
-
-local function killAllEnemies()
-	local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-	if not tool or not tool:FindFirstChild("Handle") then return end
-
-	for _, enemy in pairs(workspace:GetDescendants()) do
-		if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") then
-			local root = enemy.HumanoidRootPart
-			if (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= killRange then
-				tool:Activate()
-				wait(0.1)
-			end
-		end
-	end
-end
-
--- 🔁 Главный цикл
-coroutine.wrap(function()
-	while true do
-		wait(1)
-		if enabled then
-			local raySpot = findRayGunSpot()
-			if raySpot then
-				-- Телепорт к RayGun
-				LocalPlayer.Character.HumanoidRootPart.CFrame = raySpot.CFrame + Vector3.new(0,2,0)
-				wait(0.3)
-				simulateEPress() -- Взять
-				wait(0.3)
-				equipRayGun() -- Надеть
-				wait(0.3)
-				simulateEPress() -- Перезарядка
-			end
-			enlargeEnemies()
-			killAllEnemies()
-			wait(killDelay)
-		end
-	end
-end)()
-
--- ♻️ Возрождение
+-- 🔁 Перезапуск после смерти
 LocalPlayer.CharacterAdded:Connect(function()
-	wait(1)
-	equipRayGun()
+    wait(1)
+    pickupRayGun()
 end)

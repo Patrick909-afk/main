@@ -1,123 +1,120 @@
--- 📦 Area 51 Script by @gde_patrick
+-- C00lkid APOCALYPSE by @gde_patrick
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
 
-local CoreGui = game:GetService("CoreGui")
-local enemies = {}  -- список врагов
-local hitboxesEnabled = false
-local toolTaken = false
+-- Заменяем небо
+local lighting = game:GetService("Lighting")
+lighting.FogEnd = 100
+lighting.FogColor = Color3.fromRGB(30, 0, 30)
+lighting.Brightness = 0.5
+lighting.ClockTime = 0
+lighting.Ambient = Color3.fromRGB(0, 0, 0)
+lighting.OutdoorAmbient = Color3.fromRGB(20, 0, 20)
 
--- ⚙️ Настройки
-local HITBOX_SIZE = Vector3.new(100, 100, 100)
-local RAYGUN_NAME = "RayGun"
-local RAYGUN_PART_NAME = "RayGun" -- Название части, возле которой надо нажать E
+local sky = Instance.new("Sky", lighting)
+sky.SkyboxBk = "rbxassetid://159454299"
+sky.SkyboxDn = "rbxassetid://159454296"
+sky.SkyboxFt = "rbxassetid://159454293"
+sky.SkyboxLf = "rbxassetid://159454286"
+sky.SkyboxRt = "rbxassetid://159454300"
+sky.SkyboxUp = "rbxassetid://159454288"
 
--- 🧱 GUI
-local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "Area51Menu"
-gui.ResetOnSpawn = false
+-- Звук ужаса
+local sound = Instance.new("Sound", workspace)
+sound.SoundId = "rbxassetid://9125937434" -- страшная музыка
+sound.Volume = 10
+sound.Looped = true
+sound:Play()
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 140)
-frame.Position = UDim2.new(0.5, -150, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+-- Тряска камеры
+local run = game:GetService("RunService")
+local cam = workspace.CurrentCamera
+run.RenderStepped:Connect(function()
+	cam.CFrame = cam.CFrame * CFrame.new(math.random(-1, 1)/15, math.random(-1, 1)/15, 0)
+end)
 
-local function makeButton(text, y)
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(0.9, 0, 0, 35)
-	btn.Position = UDim2.new(0.05, 0, 0, y)
-	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Text = text
-	btn.TextScaled = true
-	btn.Font = Enum.Font.SourceSans
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-	return btn
-end
-
-local teleportButton = makeButton("🚀 Телепорт к RayGun", 15)
-local hitboxButton = makeButton("🧠 Хитбоксы: OFF", 60)
-local closeButton = makeButton("❌ Закрыть", 105)
-closeButton.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
-
--- 🔘 Функции
-local function teleportToRayGun()
-	for _, part in pairs(workspace:GetDescendants()) do
-		if part:IsA("BasePart") and part.Name == RAYGUN_PART_NAME then
-			if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-				LocalPlayer.Character.HumanoidRootPart.CFrame = part.CFrame + Vector3.new(1, 1, 0)
-				wait(0.3)
-				-- Нажатие клавиши E
-				keypress(Enum.KeyCode.E)
-				wait(0.1)
-				keyrelease(Enum.KeyCode.E)
-			end
-			break
-		end
-	end
-end
-
--- 📦 Увеличение хитбоксов врагов
-local function updateEnemies()
-	enemies = {}
-	for _, npc in pairs(workspace:GetDescendants()) do
-		if npc:IsA("Model") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(npc) then
-			table.insert(enemies, npc)
-		end
-	end
-end
-
-local function setHitboxes(state)
-	for _, npc in pairs(enemies) do
-		local root = npc:FindFirstChild("HumanoidRootPart")
-		if root then
-			if state then
-				root.Size = HITBOX_SIZE
-				root.Transparency = 0.4
-				root.Material = Enum.Material.ForceField
-			else
-				root.Size = Vector3.new(2, 2, 1)
-				root.Transparency = 0
-				root.Material = Enum.Material.Plastic
-			end
-		end
-	end
-end
-
--- ♻️ Цикл обновления
-RunService.Heartbeat:Connect(function()
-	if hitboxesEnabled then
-		updateEnemies()
-		setHitboxes(true)
+-- Мигающий экран
+spawn(function()
+	while true do
+		wait(0.2)
+		local flash = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+		local frame = Instance.new("Frame", flash)
+		frame.Size = UDim2.new(1, 0, 1, 0)
+		frame.BackgroundColor3 = Color3.new(1, 0, 0)
+		frame.BackgroundTransparency = 0.7
+		wait(0.1)
+		flash:Destroy()
 	end
 end)
 
--- 🧠 Кнопки
-teleportButton.MouseButton1Click:Connect(function()
-	teleportToRayGun()
-end)
+-- Спавн огня, дыма, c00lkid-клонов, голов, объектов
+local function spawnChaos()
+	-- Огонь и дым
+	for i = 1, 5 do
+		local part = Instance.new("Part", workspace)
+		part.Anchored = false
+		part.Size = Vector3.new(4, 1, 4)
+		part.Position = hrp.Position + Vector3.new(math.random(-30, 30), 10, math.random(-30, 30))
+		part.BrickColor = BrickColor.new("Really black")
+		part.Material = Enum.Material.Neon
+		part.CanCollide = true
 
-hitboxButton.MouseButton1Click:Connect(function()
-	hitboxesEnabled = not hitboxesEnabled
-	hitboxButton.Text = hitboxesEnabled and "🧠 Хитбоксы: ON" or "🧠 Хитбоксы: OFF"
-	if not hitboxesEnabled then
-		setHitboxes(false)
+		local fire = Instance.new("Fire", part)
+		fire.Size = 10
+		fire.Heat = 25
+
+		local smoke = Instance.new("Smoke", part)
+		smoke.Opacity = 0.5
+		smoke.Size = 10
 	end
-end)
 
-closeButton.MouseButton1Click:Connect(function()
-	gui:Destroy()
-end)
+	-- Клоны C00lkid
+	for i = 1, 3 do
+		local clone = char:Clone()
+		clone.Parent = workspace
+		clone.Name = "C00lkid"
+		clone.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(math.random(-10, 10), 0, math.random(-10, 10))
+		clone.HumanoidRootPart.Anchored = false
+		pcall(function() clone.Head.face.Texture = "rbxassetid://7070700" end)
+		pcall(function() clone.Shirt.ShirtTemplate = "rbxassetid://144076759" end)
+		pcall(function() clone.Pants.PantsTemplate = "rbxassetid://144076760" end)
+	end
 
--- ♻️ Автоперезапуск после смерти
-LocalPlayer.CharacterAdded:Connect(function()
+	-- Летающие головы
+	for i = 1, 3 do
+		local head = Instance.new("Part", workspace)
+		head.Size = Vector3.new(2, 2, 2)
+		head.Shape = Enum.PartType.Ball
+		head.Position = hrp.Position + Vector3.new(math.random(-20, 20), 10, math.random(-20, 20))
+		head.BrickColor = BrickColor.new("Really red")
+		head.Material = Enum.Material.SmoothPlastic
+		head.Velocity = Vector3.new(math.random(-50, 50), math.random(20, 50), math.random(-50, 50))
+
+		local decal = Instance.new("Decal", head)
+		decal.Texture = "rbxassetid://7070700"
+		decal.Face = Enum.NormalId.Front
+	end
+
+	-- Гром
+	local thunder = Instance.new("Sound", workspace)
+	thunder.SoundId = "rbxassetid://130767645"
+	thunder.Volume = 10
+	thunder:Play()
+
+	-- Падающие объекты
+	local object = Instance.new("Part", workspace)
+	object.Size = Vector3.new(4, 4, 4)
+	object.Position = hrp.Position + Vector3.new(math.random(-30, 30), 50, math.random(-30, 30))
+	object.BrickColor = BrickColor.Random()
+	object.Material = Enum.Material.CorrodedMetal
+	object.Velocity = Vector3.new(0, -100, 0)
+end
+
+-- Запуск хаоса каждую секунду
+while true do
 	wait(1)
-	toolTaken = false
-end)
+	spawnChaos()
+end

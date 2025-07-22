@@ -1,125 +1,122 @@
--- 📌 Автор: @gde_patrick
+-- 📦 Area 51 Script by @gde_patrick
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
-local rayGunName = "RayGun"
-local hitboxSize = Vector3.new(1000, 1000, 1000)
-local hitboxToggle = false
+local RayGunName = "RayGun"
+local MobFolderName = "ZombieStorage" -- папка с мобами (замени при необходимости)
+local RayGunObject = Workspace:FindFirstChild(RayGunName) or Workspace:WaitForChild(RayGunName)
 
--- 🧠 Враги (настрой вручную, если игра другая)
-local function getEnemies()
-    local enemies = {}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-            table.insert(enemies, obj)
-        end
-    end
-    return enemies
-end
-
--- 📦 Взять RayGun
-local function pickupRayGun()
-    local rg = Workspace:FindFirstChild(rayGunName)
-    if rg and rg:IsA("Tool") then
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = rg.CFrame + Vector3.new(0, 3, 0)
-            fireproximityprompt(rg:FindFirstChildOfClass("ProximityPrompt"), 1)
-            wait(1)
-            local backpack = LocalPlayer:WaitForChild("Backpack")
-            local tool = backpack:FindFirstChild(rayGunName)
-            if tool then
-                tool.Parent = LocalPlayer.Character
-            end
-        end
-    end
-end
-
--- 🌀 Хитбоксы вкл/выкл
-local function toggleHitboxes()
-    hitboxToggle = not hitboxToggle
-    for _, enemy in ipairs(getEnemies()) do
-        local root = enemy:FindFirstChild("HumanoidRootPart")
-        if root then
-            if hitboxToggle then
-                root.Size = hitboxSize
-                root.Transparency = 0.6
-                root.Material = Enum.Material.Neon
-                root.CanCollide = false
-            else
-                root.Size = Vector3.new(2, 2, 1)
-                root.Transparency = 0
-                root.Material = Enum.Material.Plastic
-                root.CanCollide = true
-            end
-        end
-    end
-end
-
--- ♻️ Возврат хитбоксов после возрождения мобов
-RunService.Heartbeat:Connect(function()
-    if hitboxToggle then
-        for _, enemy in ipairs(getEnemies()) do
-            local root = enemy:FindFirstChild("HumanoidRootPart")
-            if root and root.Size.Magnitude < 100 then
-                root.Size = hitboxSize
-                root.Transparency = 0.6
-                root.Material = Enum.Material.Neon
-                root.CanCollide = false
-            end
-        end
-    end
-end)
-
--- 💡 GUI
+-- GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "PatrickMenu"
+gui.Name = "Area51ScriptGui"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 250, 0, 120)
-frame.Position = UDim2.new(0, 100, 0.4, 0)
+frame.Size = UDim2.new(0, 220, 0, 120)
+frame.Position = UDim2.new(0, 50, 0.5, -60)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+Instance.new("UICorner", frame)
 
-local uicorner = Instance.new("UICorner", frame)
-uicorner.CornerRadius = UDim.new(0, 10)
+local teleportBtn = Instance.new("TextButton", frame)
+teleportBtn.Size = UDim2.new(1, -20, 0, 40)
+teleportBtn.Position = UDim2.new(0, 10, 0, 10)
+teleportBtn.Text = "🚀 Телепорт к RayGun"
+teleportBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+teleportBtn.TextColor3 = Color3.new(1, 1, 1)
+teleportBtn.Font = Enum.Font.SourceSansBold
+teleportBtn.TextSize = 16
+Instance.new("UICorner", teleportBtn)
 
-local tpButton = Instance.new("TextButton", frame)
-tpButton.Size = UDim2.new(1, -20, 0, 40)
-tpButton.Position = UDim2.new(0, 10, 0, 10)
-tpButton.Text = "📦 Телепорт к RayGun"
-tpButton.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
-tpButton.TextColor3 = Color3.new(1, 1, 1)
-tpButton.Font = Enum.Font.SourceSansBold
-tpButton.TextSize = 18
-Instance.new("UICorner", tpButton)
+local toggleBtn = Instance.new("TextButton", frame)
+toggleBtn.Size = UDim2.new(1, -20, 0, 40)
+toggleBtn.Position = UDim2.new(0, 10, 0, 65)
+toggleBtn.Text = "🎯 Хитбоксы: OFF"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(90, 60, 60)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextSize = 16
+Instance.new("UICorner", toggleBtn)
 
-local hitboxButton = Instance.new("TextButton", frame)
-hitboxButton.Size = UDim2.new(1, -20, 0, 40)
-hitboxButton.Position = UDim2.new(0, 10, 0, 60)
-hitboxButton.Text = "🎯 Хитбоксы: OFF"
-hitboxButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-hitboxButton.TextColor3 = Color3.new(1, 1, 1)
-hitboxButton.Font = Enum.Font.SourceSansBold
-hitboxButton.TextSize = 18
-Instance.new("UICorner", hitboxButton)
+-- 📌 Функция телепортации и взятия RayGun
+teleportBtn.MouseButton1Click:Connect(function()
+	local function pressE()
+		local VirtualInputManager = game:GetService("VirtualInputManager")
+		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+		wait(0.1)
+		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+	end
 
-tpButton.MouseButton1Click:Connect(function()
-    pickupRayGun()
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and RayGunObject then
+		LocalPlayer.Character.HumanoidRootPart.CFrame = RayGunObject.CFrame + Vector3.new(0, 2, 0)
+		wait(0.3)
+		pressE()
+	end
 end)
 
-hitboxButton.MouseButton1Click:Connect(function()
-    toggleHitboxes()
-    hitboxButton.Text = hitboxToggle and "🎯 Хитбоксы: ON" or "🎯 Хитбоксы: OFF"
+-- 🔥 Хитбоксы мобов
+local hitboxEnabled = false
+local mobs = {}
+
+local function updateMobs()
+	local folder = Workspace:FindFirstChild(MobFolderName)
+	if folder then
+		for _, mob in ipairs(folder:GetDescendants()) do
+			if mob:IsA("Model") and mob:FindFirstChild("HumanoidRootPart") then
+				table.insert(mobs, mob)
+			end
+		end
+	end
+end
+
+local function expandHitbox(mob)
+	local root = mob:FindFirstChild("HumanoidRootPart")
+	if root and not root:FindFirstChild("BigBox") then
+		local box = Instance.new("SelectionBox", root)
+		box.Name = "BigBox"
+		box.Adornee = root
+		box.LineThickness = 0.01
+		root.Size = Vector3.new(100, 100, 100)
+	end
+end
+
+local function resetHitbox(mob)
+	local root = mob:FindFirstChild("HumanoidRootPart")
+	if root then
+		pcall(function()
+			root.Size = Vector3.new(2, 2, 1)
+			local b = root:FindFirstChild("BigBox")
+			if b then b:Destroy() end
+		end)
+	end
+end
+
+toggleBtn.MouseButton1Click:Connect(function()
+	hitboxEnabled = not hitboxEnabled
+	toggleBtn.Text = hitboxEnabled and "🎯 Хитбоксы: ON" or "🎯 Хитбоксы: OFF"
+	toggleBtn.BackgroundColor3 = hitboxEnabled and Color3.fromRGB(60, 90, 60) or Color3.fromRGB(90, 60, 60)
 end)
 
--- 🔁 Перезапуск после смерти
+-- 🧠 Цикл увеличения хитбоксов
+RunService.Heartbeat:Connect(function()
+	if hitboxEnabled then
+		updateMobs()
+		for _, mob in ipairs(mobs) do
+			if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+				expandHitbox(mob)
+			else
+				resetHitbox(mob)
+			end
+		end
+	end
+end)
+
+-- 🛡 Автовосстановление после смерти
 LocalPlayer.CharacterAdded:Connect(function()
-    wait(1)
-    pickupRayGun()
+	wait(1)
+	teleportBtn.Text = "🚀 Телепорт к RayGun"
 end)

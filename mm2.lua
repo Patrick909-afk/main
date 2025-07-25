@@ -1,9 +1,10 @@
--- MM2 GUI by @gde_patrick (Полный фикс)
-local Players, RunService, Workspace, CoreGui =
+-- MM2 GUI by @gde_patrick (Фикс и улучшения)
+local Players, RunService, Workspace, CoreGui, HttpService =
 	game:GetService("Players"),
 	game:GetService("RunService"),
 	game:GetService("Workspace"),
-	game:GetService("CoreGui")
+	game:GetService("CoreGui"),
+	game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local gui = Instance.new("ScreenGui", CoreGui)
@@ -43,10 +44,13 @@ toggle.TextColor3 = Color3.new(1,1,1)
 toggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
 Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
 toggle.MouseButton1Click:Connect(function()
-	main.Visible = false
+	scroll.Visible = not scroll.Visible
 end)
 
--- MUSIC INPUT
+-- Infinity Yield запуск
+loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+
+-- Музыка
 local musicBox = Instance.new("TextBox", main)
 musicBox.Size = UDim2.new(0, 150, 0, 25)
 musicBox.Position = UDim2.new(0, 10, 0, 45)
@@ -77,7 +81,7 @@ playMusic.MouseButton1Click:Connect(function()
 	end
 end)
 
--- ФУНКЦИИ
+-- Кнопки
 local y = 0
 local function createBtn(txt, callback)
 	local btn = Instance.new("TextButton", scroll)
@@ -95,10 +99,17 @@ local espEnabled, coinFarmEnabled, walkflinging = false, false, false
 local Clip = true
 local NoclipConnection
 
-createBtn("ESP ON/OFF", function() espEnabled = not espEnabled end)
+-- ESP
+createBtn("ESP ON/OFF", function()
+	espEnabled = not espEnabled
+end)
 
-createBtn("Coin Farm ON/OFF", function() coinFarmEnabled = not coinFarmEnabled end)
+-- Coin Farm
+createBtn("Coin Farm ON/OFF", function()
+	coinFarmEnabled = not coinFarmEnabled
+end)
 
+-- WalkFling
 createBtn("WalkFling ON/OFF", function()
 	walkflinging = not walkflinging
 	if walkflinging then
@@ -115,9 +126,10 @@ createBtn("WalkFling ON/OFF", function()
 	end
 end)
 
+-- Телепорт
 createBtn("TP to Sheriff", function()
 	for _, p in pairs(Players:GetPlayers()) do
-		if p.Backpack:FindFirstChild("Gun") then
+		if p.Backpack:FindFirstChild("Gun") and p.Character then
 			LocalPlayer.Character:SetPrimaryPartCFrame(p.Character.HumanoidRootPart.CFrame)
 			break
 		end
@@ -126,7 +138,7 @@ end)
 
 createBtn("TP to Murderer", function()
 	for _, p in pairs(Players:GetPlayers()) do
-		if p.Backpack:FindFirstChild("Knife") then
+		if p.Backpack:FindFirstChild("Knife") and p.Character then
 			LocalPlayer.Character:SetPrimaryPartCFrame(p.Character.HumanoidRootPart.CFrame)
 			break
 		end
@@ -134,23 +146,15 @@ createBtn("TP to Murderer", function()
 end)
 
 createBtn("TP to Random Player", function()
-	local valid = {}
+	local targets = {}
 	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			table.insert(valid, p)
+			table.insert(targets, p)
 		end
 	end
-	if #valid > 0 then
-		local target = valid[math.random(1, #valid)]
+	if #targets > 0 then
+		local target = targets[math.random(1, #targets)]
 		LocalPlayer.Character:SetPrimaryPartCFrame(target.Character.HumanoidRootPart.CFrame)
-	end
-end)
-
-createBtn("Play All Sounds", function()
-	for _, v in ipairs(Workspace:GetDescendants()) do
-		if v:IsA("Sound") then
-			v:Play()
-		end
 	end
 end)
 
@@ -158,15 +162,18 @@ end)
 RunService.RenderStepped:Connect(function()
 	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
-			local role, color = "Innocent", Color3.fromRGB(0,255,0)
+			local role = "Innocent"
+			local color = Color3.fromRGB(0,255,0)
 			if p.Backpack:FindFirstChild("Gun") then
-				role, color = "Sheriff", Color3.fromRGB(0,0,255)
+				role = "Sheriff"
+				color = Color3.fromRGB(0,0,255)
 			elseif p.Backpack:FindFirstChild("Knife") then
-				role, color = "Murderer", Color3.fromRGB(255,0,0)
+				role = "Murderer"
+				color = Color3.fromRGB(255,0,0)
 			end
+			local tag = p.Character:FindFirstChild("ESP")
+			local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
 			if espEnabled then
-				local tag = p.Character:FindFirstChild("ESP")
 				if not tag then
 					tag = Instance.new("BillboardGui", p.Character)
 					tag.Name = "ESP"
@@ -184,24 +191,23 @@ RunService.RenderStepped:Connect(function()
 					tag.TextLabel.Text = p.Name.." ["..role.."]\n"..dist.." studs"
 					tag.TextLabel.TextColor3 = color
 				end
-			elseif p.Character:FindFirstChild("ESP") then
-				p.Character.ESP:Destroy()
+			elseif tag then
+				tag:Destroy()
 			end
 		end
 	end
 end)
 
--- Фарм и WalkFling
+-- Coin Farm + WalkFling
 RunService.Heartbeat:Connect(function()
 	if coinFarmEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") and v.Name:lower():find("coin") then
 				LocalPlayer.Character:SetPrimaryPartCFrame(v.CFrame)
-				wait(0.03)
+				wait(0.05)
 			end
 		end
 	end
-
 	if walkflinging and LocalPlayer.Character then
 		local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if root then
